@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useEthersSigner } from '../hook/ethersSigner';
 import { useEthersProvider } from '../hook/ethersProvider';
 import { ethers } from "ethers";
+import { message } from "antd";
+import { useReadContract, useBalance, useAccount } from "wagmi";
 
 import banner from '../assets/banner.png';
 import usdtbackground from '../assets/usdtplanbackground.png';
@@ -21,7 +23,8 @@ import WhaleSlider from "../components/SliderComponent";
 import PrimeInput from "../components/PrimeInput";
 import DurationSelector from "../components/DurationSelector";
 
-import contractABI from "../contracts/artifacts/contracts/Staking.sol/Staking.json";
+import { abi } from "../contracts/artifacts/contracts/Staking.sol/Staking";
+import { sign } from "viem/accounts";
 
 // import { useStakingContract } from "../apis"
 
@@ -44,7 +47,6 @@ const headImages: WhaleImagePaths = {
     "75-100": './whale/75-100.png'
 };
 
-
 function Staking() {
     const { t } = useTranslation();
     const contractAddress = "0x96CC3Bb80ee656Ea1FDb9cf539DB3559d6337BC7";
@@ -60,40 +62,47 @@ function Staking() {
     const [sliderValueusdt, setSliderValueusdt] = useState<number>(0);
     const [sliderValuebtc, setSliderValuebtc] = useState<number>(0);
     const [sliderValueeth, setSliderValueeth] = useState<number>(0);
+    const [stakedusdt, setStakedusdt] = useState<any>();
+    const [stakedeth, setStakedeth] = useState<any>();
+    const [stakedbtc, setStakedbtc] = useState<any>();
+    const [userAddress, setUserAddress] = useState<any>();
+    const [balance, setBalance] = useState<any>();
+    const [messageApi, contextHolder] = message.useMessage();
+
     const signer = useEthersSigner();
     const provider = useEthersProvider();
-    if (!provider || !signer) {
-        console.error('Provider or signer not available');
+    // if (!provider || !signer) {
+    //     console.error('Provider or signer not available');
+    // }
+    const stakingContract = new ethers.Contract(contractAddress, abi, signer);
+    useEffect(() => {
+        getUserAddress()
+    }, [])
+    async function getUserAddress() {
+        const useaddress = await signer?.getAddress();
+        const bal = await signer?.getBalance();
+        // console.log(useaddress); // This will log: '0xe152D8Af3d0A027E5880668Ad1385E48A2630dc2'
+        setUserAddress(useaddress);
+        setBalance(bal);
     }
-    const stakingContract = new ethers.Contract(contractAddress, contractABI.abi, signer);
 
+    const { data: totalStakedAmount } = useReadContract({
+        abi: abi,
+        address: contractAddress,
+        functionName: 'totalStakedAmount',
+        args: [userAddress] // Pass the resolved address
+    });
     const durationOptions = [
         { key: 'Days', percent: '15%', value: 30, real: 1 },
         { key: 'Months', percent: '24%', value: 6, real: 6 },
         { key: 'Year', percent: '36%', value: 1, real: 12 }
     ];
 
-    const isPrime = (num: number): boolean => {
-        if (num <= 1) return false;
-        if (num <= 3) return true;
-        if (num % 2 === 0 || num % 3 === 0) return false;
-        for (let i = 5; i * i <= num; i += 6) {
-            if (num % i === 0 || num % (i + 2) === 0) return false;
-        }
-        return true;
-    };
-
     const validatePrime = (value: string, setter: (value: string) => void) => {
         const num = Number(value);
         if (num !== Math.floor(num)) {
             return;
         }
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
-        const value = e.target.value;
-        const validValue = value.replace(/[^0-9.]/g, ''); // Allow only digits and a single decimal point
-        setter(validValue);
     };
 
     const getWhaleHeadSrcusdt = (): string => {
@@ -115,49 +124,98 @@ function Staking() {
     };
 
     async function handlestakeusdt() {
-        try {
-            console.log(usdtAddress, usdtduration, inputValueusdt);
-            // Call the stake function
-            const tx = await stakingContract.stake(usdtAddress, usdtduration, inputValueusdt);
+        if (usdtduration && inputValueusdt) {
+            try {
+                console.log(usdtAddress, usdtduration, inputValueusdt);
+                // Call the stake function
+                const tx = await stakingContract.stake(usdtAddress, usdtduration, inputValueusdt);
 
-            console.log('Transaction submitted:', tx);
+                console.log('Transaction submitted:', tx);
 
-            // Wait for transaction to be mined
-            await tx.wait();
+                // Wait for transaction to be mined
+                await tx.wait();
 
-            console.log('Transaction confirmed:', tx);
-        } catch (error) {
-            console.error('Error staking tokens:', error);
-        }
+                console.log('Transaction confirmed:', tx);
+            } catch (error) {
+                console.error('Error staking tokens:', error);
+            }
+        } else {
+            messageApi.open({
+                type: 'error',
+                content: 'Please enter the input values ​​correctly.',
+            });
+        };
     }
 
     async function handlestakeeth() {
+        if (wethAddress && inputValueeth) {
+            try {
+                // Call the stake function
+                const tx = await stakingContract.stake(wethAddress, ethduration, inputValueeth);
+
+                console.log('Transaction submitted:', tx);
+
+                // Wait for transaction to be mined
+                await tx.wait();
+
+                console.log('Transaction confirmed:', tx);
+            } catch (error) {
+                console.error('Error staking tokens:', error);
+            }
+        } else {
+            messageApi.open({
+                type: 'error',
+                content: 'Please enter the input values ​​correctly.',
+            });
+        };
+    }
+
+    async function handlestakebtc() {
+        if (wbtcAddress && inputValuebtc) {
+            try {
+                // Call the stake function
+                const tx = await stakingContract.stake(wbtcAddress, btcduration, inputValuebtc);
+
+                console.log('Transaction submitted:', tx);
+
+                // Wait for transaction to be mined
+                await tx.wait();
+            } catch (error) {
+                console.error('Error staking tokens:', error);
+            }
+        } else {
+            messageApi.open({
+                type: 'error',
+                content: 'Please enter the input values ​​correctly.',
+            });
+        };
+    }
+
+    async function handleunstakeeth() {
         try {
-            // Call the stake function
-            const tx = await stakingContract.stake(wethAddress, ethduration, inputValueeth);
-
+            const tx = await stakingContract.unstake(wethAddress);
             console.log('Transaction submitted:', tx);
-
-            // Wait for transaction to be mined
             await tx.wait();
-
-            console.log('Transaction confirmed:', tx);
         } catch (error) {
             console.error('Error staking tokens:', error);
         }
     }
 
-    async function handlestakebtc() {
+    async function handleunstakebtc() {
         try {
-            // Call the stake function
-            const tx = await stakingContract.stake(wbtcAddress, btcduration, inputValuebtc);
-
+            const tx = await stakingContract.unstake(wbtcAddress);
             console.log('Transaction submitted:', tx);
-
-            // Wait for transaction to be mined
             await tx.wait();
+        } catch (error) {
+            console.error('Error staking tokens:', error);
+        }
+    }
 
-            console.log('Transaction confirmed:', tx);
+    async function handleunstakeusdt() {
+        try {
+            const tx = await stakingContract.unstake(usdtAddress);
+            console.log('Transaction submitted:', tx);
+            await tx.wait();
         } catch (error) {
             console.error('Error staking tokens:', error);
         }
@@ -166,6 +224,7 @@ function Staking() {
 
     return (
         <div className="flex flex-col w-full items-center text-white">
+            {contextHolder}
             <div className="flex h-screen w-full items-center text-[40px] my-[20px] md:my-0 md:text-[80px] relative justify-center">
                 <img src={banner} alt="Whale" className="absolute w-full h-[100%] my-[20px] md:h-[auto]" />
                 <div className="relative z-10 flex flex-col justify-center items-start w-full h-full px-4 mb-[-40px]">
@@ -324,23 +383,23 @@ function Staking() {
                 <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
                     <img src={mystake} className="absolute w-full h-full" alt="" />
                     <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="flex md:w-[35%] ">
-                            <div className="flex items-center">
+                        <div className="flex gap-2 md:w-[100%] ">
+                            <div className="flex w-1/2 items-center">
                                 <img src={usdt} alt="" className="w-14 h-14 mr-4" />
                                 <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
                             </div>
-                            <div className="h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
-                                <p className="text-[35px] md:text-[30px] font-bold" onClick={handlestakebtc}>Unstake </p>
+                            <div className="h-20 opacity-50 w-1/2 bg-black rounded-2xl flex justify-center items-center cursor-pointer mr-6">
+                                <p className="text-[35px] md:text-[30px] font-bold" onClick={handleunstakeusdt}>Unstake </p>
                             </div>
                         </div>
                         <div className="flex mt-10 justify-between">
                             <div className="w-1/2">
                                 <p>{t('total')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">1045</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >USDT~$1045.00</span></p>
+                                <p className="flex"><span className="text-[25px] md:text-[40px]">{totalStakedAmount?.toString()}</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >USDT</span></p>
                             </div>
                             <div className="w-1/2">
                                 <p>{t('available')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">53</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >USDT~$1045.00</span></p>
+                                <p className="flex"><span className="text-[25px] md:text-[40px]">{balance?.toString()}</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >USDT</span></p>
                             </div>
                         </div>
 
@@ -350,21 +409,23 @@ function Staking() {
                 <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
                     <img src={mystake} className="absolute w-full h-full" alt="" />
                     <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="my-autow-full md:w-[35%] ">
-                            <div className="flex items-center">
+                        <div className="flex md:w-[100%] ">
+                            <div className="flex w-1/2 items-center">
                                 <img src={btc} alt="" className="w-14 h-14 mr-4" />
                                 <p className="text-[35px] md:text-[30px] font-bold flex">Bitcoin</p>
                             </div>
-
+                            <div className="h-20 opacity-50 w-1/2 bg-black rounded-2xl flex justify-center items-center cursor-pointer mr-6">
+                                <p className="text-[35px] md:text-[30px] font-bold" onClick={handleunstakebtc}>Unstake </p>
+                            </div>
                         </div>
                         <div className="flex mt-10 justify-between">
                             <div className="w-1/2">
                                 <p>{t('total')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">1045</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >BTC~BTC1045.00</span></p>
+                                <p className="flex"><span className="text-[25px] md:text-[40px]">{totalStakedAmount?.toString()}</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >BTC</span></p>
                             </div>
                             <div className="w-1/2">
                                 <p>{t('available')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">53</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >BTC~BTC1045.00</span></p>
+                                <p className="flex"><span className="text-[25px] md:text-[40px]">{balance?.toString()}</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >BTC</span></p>
                             </div>
                         </div>
 
@@ -374,21 +435,23 @@ function Staking() {
                 <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
                     <img src={mystake} className="absolute w-full h-full" alt="" />
                     <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="my-autow-full md:w-[35%] ">
-                            <div className="flex items-center">
+                        <div className="flex md:w-[100%] ">
+                            <div className="flex w-1/2 items-center">
                                 <img src={eth} alt="" className="w-14 h-14 mr-4" />
                                 <p className="text-[35px] md:text-[30px] font-bold flex">Ethereum</p>
                             </div>
-
+                            <div className="h-20 opacity-50 w-1/2 bg-black rounded-2xl flex justify-center items-center cursor-pointer mr-6">
+                                <p className="text-[35px] md:text-[30px] font-bold" onClick={handleunstakeeth}>Unstake </p>
+                            </div>
                         </div>
                         <div className="flex mt-10 justify-between">
                             <div className="w-1/2">
                                 <p>{t('total')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">1045</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH~ETH1045.00</span></p>
+                                <p className="flex"><span className="text-[25px] md:text-[40px]">{totalStakedAmount?.toString()}</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH</span></p>
                             </div>
                             <div className="w-1/2">
                                 <p>{t('available')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">53</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH~ETH1045.00</span></p>
+                                <p className="flex"><span className="text-[25px] md:text-[40px]">{balance?.toString()}</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH</span></p>
                             </div>
                         </div>
 
