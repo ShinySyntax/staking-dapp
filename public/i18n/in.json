@@ -1,0 +1,23 @@
+{
+    "swim": "Berenang bersama paus",
+    "earn": "Hasilkan banyak!",
+    "Join": "Bergabunglah dengan Whale Strategy dan nikmati hadiah staking dengan mudah.",
+    "trading": "Rencana Perdagangan",
+    "staking": "Taruhan Saya",
+    "risk": "Sebelum melakukan staking, pahami sepenuhnya risiko yang terlibat",
+    "day" : "Hari",
+    "month" : "Bulan",
+    "year" : "Tahun",
+    "stake": "Mempertaruhkan",
+    "take": "Mempertaruhkan" ,
+    "withdraw": "Menarik",
+    "total": "Jumlah yang dipertaruhkan",
+    "available": "Tersedia di Dompet",
+    "crypto": "Bergabunglah dengan kami dan jelajahi peluang kripto tanpa batas!",
+    "English": "Inggris",
+    "Chinese": "Cina",
+    "Hindi": "Hindi",
+    "Indonesian": "Indonesia",
+    "wbtc": "This stake uses WBTC (Wrapped Bitcoin), a tokenized version of BTC. WBTC enables faster transaction confirmations and lower fees compared to regular BTC, making it ideal for staking in DeFi protocols.",
+    "weth": "This stake uses WETH (Wrapped Ether), a tokenized version of ETH. By using WETH, users benefit from faster transactions, lower gas fees, and better compatibility with DeFi platforms, making staking more efficient."
+}
