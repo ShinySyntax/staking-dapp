@@ -25,7 +25,7 @@ function Navbar() {
             </a>
             <div className="flex items-center">
                 <ConnectButton />
-                {/* <div className="relative">
+                <div className="relative">
                     <button onClick={() => setIsOpen(!isOpen)} className="flex items-center justify-center w-24 md:w-32 h-10 rounded-[13px] p-2 bg-[#0E76FD] text-white text-[16px] font-bold ml-4">
                         {selectedLanguage.img && (
                             <img src={selectedLanguage.img} alt="" className="w-6 h-auto mr-2 mt-[4px]" />
@@ -42,7 +42,7 @@ function Navbar() {
                             ))}
                         </div>
                     )}
-                </div> */}
+                </div>
             </div>
         </div>
     )

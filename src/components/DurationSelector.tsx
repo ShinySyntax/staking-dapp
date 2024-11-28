@@ -3,7 +3,7 @@ import React from 'react';
 interface DurationOption {
     key: string;
     percent: string;
-    value: Number;
+    value: string;
     real: Number
 }
 
